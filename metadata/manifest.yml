@@ -1,20 +1,19 @@
 Name: wildfly
 Cartridge-Short-Name: WILDFLY
-Display-Name: Keycloak 2.5.1.Final
-Description: "Authentication and Authorization Server."
+Display-Name: WildFly 10 with Keycloak 2.5
+Description: "WildFly 10 Application server including Keycloak Auth Server"
 Version: '10'
-Source-Url: https://github.com/openshift-cartridges/openshift-wildfly-cartridge/archive/wildfly-10.zip
+Source-Url: https://github.com/download/wildfly-keycloak-mysql-cartridge/archive/master.zip
 License: LGPL
 License-Url: http://www.gnu.org/copyleft/lesser.txt
-Vendor: JBoss
-Cartridge-Version: '0.2.0'
-Cartridge-Vendor: jboss
+Vendor: Community
+Cartridge-Version: '0.0.1'
+Cartridge-Vendor: community
 Categories:
   - service
   - web_framework
   - java
   - wildfly
-  - java_ee_7
 Website: http://www.wildfly.org
 Help-Topics:
   "Developer Center": https://www.openshift.com/developers
@@ -53,6 +52,7 @@ Provides:
   - wildfly-10
   - "wildfly"
   - wildfly-standalone
+  - keycloak
 Publishes:
   publish-http-url:
     Type: "NET_TCP:httpd-proxy-info"

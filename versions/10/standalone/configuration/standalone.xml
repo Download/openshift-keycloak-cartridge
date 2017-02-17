@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 
-<server xmlns="urn:jboss:domain:4.0">
+<server xmlns="urn:jboss:domain:4.2">
     <extensions>
         <extension module="org.jboss.as.clustering.infinispan"/>
         <extension module="org.jboss.as.clustering.jgroups"/>
@@ -92,14 +92,28 @@
                     <named-formatter name="COLOR-PATTERN"/>
                 </formatter>
             </console-handler>
-            <periodic-rotating-file-handler name="FILE" autoflush="true">
+
+            <!-- Periodic rotating file handler does not allow limiting space log files take up... -->
+            <!-- periodic-rotating-file-handler name="FILE" autoflush="true">
                 <formatter>
                     <named-formatter name="PATTERN"/>
                 </formatter>
                 <file relative-to="jboss.server.log.dir" path="server.log"/>
                 <suffix value=".yyyy-MM-dd"/>
                 <append value="true"/>
-            </periodic-rotating-file-handler>
+            </periodic-rotating-file-handler -->
+
+            <!-- limit size log files can consume to 10MB -->
+            <size-rotating-file-handler name="FILE" autoflush="true">
+                <formatter>
+                    <named-formatter name="PATTERN"/>
+                </formatter>
+                <file relative-to="jboss.server.log.dir" path="server.log"/>
+                <rotate-size value="1024K"/>
+                <max-backup-index value="9"/>
+                <append value="true"/>
+            </size-rotating-file-handler>
+
             <logger category="com.arjuna">
                 <level name="WARN"/>
             </logger>
@@ -137,21 +151,21 @@
         <subsystem xmlns="urn:jboss:domain:bean-validation:1.0"/>
         <subsystem xmlns="urn:jboss:domain:datasources:4.0">
             <datasources>
-                <datasource jndi-name="java:jboss/datasources/ExampleDS" pool-name="ExampleDS" enabled="true" use-java-context="true">
-                    <connection-url>jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE</connection-url>
-                    <driver>h2</driver>
-                    <security>
-                        <user-name>sa</user-name>
-                        <password>sa</password>
-                    </security>
-                </datasource>
                 <datasource jndi-name="java:jboss/datasources/KeycloakDS" pool-name="KeycloakDS" enabled="true" use-java-context="true">
-                    <connection-url>jdbc:h2:${jboss.server.data.dir}/keycloak;AUTO_SERVER=TRUE</connection-url>
-                    <driver>h2</driver>
+                    <connection-url>jdbc:mysql://${env.OPENSHIFT_MYSQL_DB_HOST}:${env.OPENSHIFT_MYSQL_DB_PORT}/${env.OPENSHIFT_APP_NAME}</connection-url>
+                    <driver>mysql</driver>
                     <security>
-                        <user-name>sa</user-name>
-                        <password>sa</password>
+                      <user-name>${env.OPENSHIFT_MYSQL_DB_USERNAME}</user-name>
+                      <password>${env.OPENSHIFT_MYSQL_DB_PASSWORD}</password>
                     </security>
+                    <validation>
+                        <check-valid-connection-sql>SELECT 1</check-valid-connection-sql>
+                        <background-validation>true</background-validation>
+                        <background-validation-millis>60000</background-validation-millis>
+                    </validation>
+                    <pool>
+                        <flush-strategy>IdleConnections</flush-strategy>
+                    </pool>
                 </datasource>
                 <datasource jndi-name="java:jboss/datasources/MySQLDS" enabled="${mysql.enabled}" use-java-context="true" pool-name="MySQLDS" use-ccm="true">
                     <connection-url>jdbc:mysql://${env.OPENSHIFT_MYSQL_DB_HOST}:${env.OPENSHIFT_MYSQL_DB_PORT}/${env.OPENSHIFT_APP_NAME}</connection-url>
@@ -164,38 +178,14 @@
                         <check-valid-connection-sql>SELECT 1</check-valid-connection-sql>
                         <background-validation>true</background-validation>
                         <background-validation-millis>60000</background-validation-millis>
-                        <!--<validate-on-match>true</validate-on-match>-->
-                    </validation>
-                    <pool>
-                        <flush-strategy>IdleConnections</flush-strategy>
-                    </pool>
-                </datasource>
-                <datasource jndi-name="java:jboss/datasources/PostgreSQLDS" enabled="${postgresql.enabled}" use-java-context="true" pool-name="PostgreSQLDS" use-ccm="true">
-                    <connection-url>jdbc:postgresql://${env.OPENSHIFT_POSTGRESQL_DB_HOST}:${env.OPENSHIFT_POSTGRESQL_DB_PORT}/${env.OPENSHIFT_APP_NAME}</connection-url>
-                    <driver>postgresql</driver>
-                    <security>
-                      <user-name>${env.OPENSHIFT_POSTGRESQL_DB_USERNAME}</user-name>
-                      <password>${env.OPENSHIFT_POSTGRESQL_DB_PASSWORD}</password>
-                    </security>
-                    <validation>
-                        <check-valid-connection-sql>SELECT 1</check-valid-connection-sql>
-                        <background-validation>true</background-validation>
-                        <background-validation-millis>60000</background-validation-millis>
-                        <!--<validate-on-match>true</validate-on-match>-->
                     </validation>
                     <pool>
                         <flush-strategy>IdleConnections</flush-strategy>
                     </pool>
                 </datasource>
                 <drivers>
-                    <driver name="h2" module="com.h2database.h2">
-                        <xa-datasource-class>org.h2.jdbcx.JdbcDataSource</xa-datasource-class>
-                    </driver>
                     <driver name="mysql" module="com.mysql.jdbc">
                         <xa-datasource-class>com.mysql.jdbc.jdbc2.optional.MysqlXADataSource</xa-datasource-class>
-                    </driver>
-                    <driver name="postgresql" module="org.postgresql.jdbc">
-                        <xa-datasource-class>org.postgresql.xa.PGXADataSource</xa-datasource-class>
                     </driver>
                 </drivers>
             </datasources>
@@ -219,7 +209,7 @@
                     <managed-scheduled-executor-service name="default" jndi-name="java:jboss/ee/concurrency/scheduler/default" context-service="default" hung-task-threshold="60000" keepalive-time="3000"/>
                 </managed-scheduled-executor-services>
             </concurrent>
-            <default-bindings context-service="java:jboss/ee/concurrency/context/default" datasource="java:jboss/datasources/ExampleDS" managed-executor-service="java:jboss/ee/concurrency/executor/default" managed-scheduled-executor-service="java:jboss/ee/concurrency/scheduler/default" managed-thread-factory="java:jboss/ee/concurrency/factory/default"/>
+            <default-bindings context-service="java:jboss/ee/concurrency/context/default" datasource="java:jboss/datasources/MySQLDS" managed-executor-service="java:jboss/ee/concurrency/executor/default" managed-scheduled-executor-service="java:jboss/ee/concurrency/scheduler/default" managed-thread-factory="java:jboss/ee/concurrency/factory/default"/>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:ejb3:4.0">
             <session-bean>
@@ -266,26 +256,56 @@
             <log-system-exceptions value="true"/>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:io:1.1">
-            <worker name="default"/>
+            <worker name="default" task-max-threads="20"/>
             <buffer-pool name="default"/>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:infinispan:4.0">
             <cache-container name="keycloak" jndi-name="infinispan/Keycloak">
-                <local-cache name="realms"/>
-                <local-cache name="users">
+                <transport lock-timeout="60000"/>
+                <distributed-cache name="realms">
+                    <locking isolation="REPEATABLE_READ"/>
+                    <transaction mode="BATCH"/>
+                    <file-store/>
+		</distributed-cache>
+                <distributed-cache name="users">
                     <eviction max-entries="10000" strategy="LRU"/>
-                </local-cache>
-                <local-cache name="sessions"/>
-                <local-cache name="offlineSessions"/>
-                <local-cache name="loginFailures"/>
-                <local-cache name="work"/>
-                <local-cache name="authorization">
+                    <locking isolation="REPEATABLE_READ"/>
+                    <transaction mode="BATCH"/>
+                    <file-store/>
+		</distributed-cache>
+                <distributed-cache name="sessions">
+                    <locking isolation="REPEATABLE_READ"/>
+                    <transaction mode="BATCH"/>
+                    <file-store/>
+		</distributed-cache>
+                <distributed-cache name="offlineSessions">
+                    <locking isolation="REPEATABLE_READ"/>
+                    <transaction mode="BATCH"/>
+                    <file-store/>
+		</distributed-cache>
+                <distributed-cache name="loginFailures">
+                    <locking isolation="REPEATABLE_READ"/>
+                    <transaction mode="BATCH"/>
+                    <file-store/>
+		</distributed-cache>
+                <distributed-cache name="work">
+                    <locking isolation="REPEATABLE_READ"/>
+                    <transaction mode="BATCH"/>
+                    <file-store/>
+		</distributed-cache>
+                <distributed-cache name="authorization">
                     <eviction max-entries="100" strategy="LRU"/>
-                </local-cache>
-                <local-cache name="keys">
+                    <locking isolation="REPEATABLE_READ"/>
+                    <transaction mode="BATCH"/>
+                    <file-store/>
+		</distributed-cache>
+                <distributed-cache name="keys">
                     <eviction max-entries="1000" strategy="LRU"/>
                     <expiration max-idle="3600000"/>
-                </local-cache>
+                    <locking isolation="REPEATABLE_READ"/>
+                    <transaction mode="BATCH"/>
+                    <file-store/>
+		</distributed-cache>
             </cache-container>
             <cache-container name="server" aliases="singleton cluster" default-cache="default" module="org.wildfly.clustering.server">
                 <transport lock-timeout="60000"/>
@@ -333,15 +353,15 @@
             <bean-validation enabled="true"/>
             <default-workmanager>
                 <short-running-threads>
-                    <core-threads count="50"/>
-                    <queue-length count="50"/>
-                    <max-threads count="50"/>
+                    <core-threads count="32"/>
+                    <queue-length count="32"/>
+                    <max-threads count="32"/>
                     <keepalive-time time="10" unit="seconds"/>
                 </short-running-threads>
                 <long-running-threads>
-                    <core-threads count="50"/>
-                    <queue-length count="50"/>
-                    <max-threads count="50"/>
+                    <core-threads count="32"/>
+                    <queue-length count="32"/>
+                    <max-threads count="32"/>
                     <keepalive-time time="10" unit="seconds"/>
                 </long-running-threads>
             </default-workmanager>
@@ -464,14 +484,6 @@
                         <policy-module code="Delegating" flag="required"/>
                     </authorization>
                 </security-domain>
-                <security-domain name="jaspitest" cache-type="default">
-                    <authentication-jaspi>
-                        <login-module-stack name="dummy">
-                            <login-module code="Dummy" flag="optional"/>
-                        </login-module-stack>
-                        <auth-module code="Dummy"/>
-                    </authentication-jaspi>
-                </security-domain>
             </security-domains>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:singleton:1.0">
@@ -489,14 +501,15 @@
             </core-environment>
             <recovery-environment socket-binding="txn-recovery-environment" status-socket-binding="txn-status-manager"/>
         </subsystem>
-        <subsystem xmlns="urn:jboss:domain:undertow:3.0">
+        <subsystem xmlns="urn:jboss:domain:undertow:3.1">
             <buffer-cache name="default"/>
             <server name="default-server">
                 <http-listener name="default" socket-binding="http" proxy-address-forwarding="true" redirect-socket="https"/>
                 <host name="default-host" alias="localhost">
                     <location name="/" handler="welcome-content"/>
                     <filter-ref name="server-header"/>
-                    <filter-ref name="x-powered-by-header"/>
+                    <filter-ref name="gzipFilter" predicate="exists['%{o,Content-Type}'] and regex[pattern='(?:application/javascript|text/css|text/html|text/javascript|text/xml|application/json)(;.*)?', value=%{o,Content-Type}, full-match=true]"/>
+                    <filter-ref name="Vary-header"/>
                 </host>
             </server>
             <servlet-container name="default">
@@ -508,7 +521,8 @@
             </handlers>
             <filters>
                 <response-header name="server-header" header-name="Server" header-value="WildFly/10"/>
-                <response-header name="x-powered-by-header" header-name="X-Powered-By" header-value="Undertow/1"/>
+                <gzip name="gzipFilter"/>
+                <response-header name="Vary-header" header-name="Vary" header-value="Accept-Encoding"/>
             </filters>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:webservices:2.0">
