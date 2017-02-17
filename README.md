@@ -3,6 +3,7 @@
 This cartridge installs a WildFly 10 instance (modeled after [openshift-wildfly-cartridge](https://github.com/openshift-cartridges/openshift-wildfly-cartridge)) 
 and adds Keycloak to it (modeled after [openshift-keycloak-cartridge](https://github.com/keycloak/openshift-keycloak-cartridge)).
 
+## Changes
 This cartridge changes a few things compared to the `openshift-keycloak-cartridge`:
 
 * Use the connected MySQL database, not the built-in H2 database.
@@ -17,9 +18,16 @@ advantage because it allows my app to query the users tables easily. However if 
 keep the Keycloak tables separate, make a new schema for keycloak and alter the config for 
 `KeycloakDS` in `standalone.xml` to use the keycloak schema i.s.o the default schema.
 
+## Installation
 
-You can build a gear using this cartridge with the following command:
+You can create a new application using this cartridge with the following command:
 
-	rhc app create keycloak http://cartreflect-claytondev.rhcloud.com/github/download/wildfly-keycloak-mysql-cartridge mysql-5.5
-	
-It will take a few minutes to build, so be patient.
+```sh
+rhc app create myapp http://cartreflect-claytondev.rhcloud.com/github/download/wildfly-keycloak-mysql-cartridge mysql-5.5 -s
+```
+
+This will create a new application with two connected gears. The web gear will run 
+WildFly 10.1.0.Final with Keycloak 2.5.1.Final embedded. MySQL 5.5 will be installed 
+on the second gear and Keycloak will add it's tables and data to the MySQL database.
+
+> It will take a few minutes to build, so be patient.
